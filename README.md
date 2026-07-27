@@ -1,5 +1,8 @@
 # AI CRM Update Workflow
 
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Profile-0A66C2?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/aminebakhti/)
+[![GitHub](https://img.shields.io/badge/GitHub-Profile-181717?style=for-the-badge&logo=github)](https://github.com/iwkmstiic)
+
 ## Overview
 
 An AI-powered CRM automation built with n8n that analyzes incoming lead information, evaluates lead quality, updates CRM records, and alerts sales teams about high-value opportunities.
