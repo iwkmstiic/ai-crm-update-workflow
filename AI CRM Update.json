@@ -1,0 +1,701 @@
+{
+  "name": "AI CRM Update",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## AI CRM Update\n\n1. Manual Trigger → sample lead\n2. Gemini analyzes the lead → structured JSON\n3. Merge lead + analysis into a CRM record\n4. Append record to the \"AI CRM Portfolio\" Google Sheet\n5. HOT leads → urgent Gmail; others → standard Gmail\n6. Completion node confirms each stage"
+      },
+      "id": "c0dc3b0e-c016-4a53-8ba4-c61d02d7fece",
+      "name": "Sticky Note c0dc3b0e",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        848,
+        384
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "c066264f-c979-486b-966d-677d4571ff94",
+      "name": "Start (Manual Test)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "leadName",
+              "name": "leadName",
+              "value": "Sarah Thompson",
+              "type": "string"
+            },
+            {
+              "id": "company",
+              "name": "company",
+              "value": "Northwind Analytics",
+              "type": "string"
+            },
+            {
+              "id": "email",
+              "name": "email",
+              "value": "sarah.thompson@northwind-analytics.com",
+              "type": "string"
+            },
+            {
+              "id": "phone",
+              "name": "phone",
+              "value": "+1 415 555 0192",
+              "type": "string"
+            },
+            {
+              "id": "jobTitle",
+              "name": "jobTitle",
+              "value": "VP of Operations",
+              "type": "string"
+            },
+            {
+              "id": "inquiryMessage",
+              "name": "inquiryMessage",
+              "value": "Hi, we are a 300-person company evaluating automation platforms this quarter. We have budget approved (~$40k) and need to make a decision within the next two weeks. Can someone walk us through enterprise pricing and onboarding?",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f4f0f12e-1c1c-4630-921c-557327da0172",
+      "name": "Sample Lead Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an expert B2B sales analyst. Analyze the following inbound sales lead and return ONLY structured JSON.\n\nLead Name: {{ $json.leadName }}\nCompany: {{ $json.company }}\nEmail: {{ $json.email }}\nPhone: {{ $json.phone }}\nJob Title: {{ $json.jobTitle }}\nInquiry Message: {{ $json.inquiryMessage }}\n\nAssess the lead and produce:\n- leadQuality: exactly one of Hot, Warm, or Cold\n- estimatedDealValue: a realistic estimated deal value (currency string)\n- purchaseIntent: High, Medium, or Low\n- recommendedNextAction: the single best next step for the sales rep\n- leadSummary: a concise 1-2 sentence summary of the opportunity\n- salesPriority: a priority label (e.g. P1 - Urgent, P2 - High, P3 - Standard)\n- suggestedFollowUpEmail: a short, personalized follow-up email body\n- confidenceScore: an integer from 0 to 100 reflecting your confidence\n\nBase HOT ratings on strong buying signals such as approved budget, decision authority, and a short timeline.",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "id": "d0f93818-e0e0-42de-85c9-1160f047b756",
+      "name": "Analyze Lead (Gemini)",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        448,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "ece0b63a-7801-4c57-8e73-6f26dae8a627",
+      "name": "Google Gemini",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        464,
+        336
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": null,
+          "name": "n8n Connect",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\"leadQuality\":\"Hot\",\"estimatedDealValue\":\"$40,000\",\"purchaseIntent\":\"High\",\"recommendedNextAction\":\"Schedule an enterprise pricing call within 24 hours\",\"leadSummary\":\"Enterprise buyer with approved budget and a 2-week decision window.\",\"salesPriority\":\"P1 - Urgent\",\"suggestedFollowUpEmail\":\"Hi Sarah, thanks for reaching out. I would love to walk you through enterprise pricing...\",\"confidenceScore\":90}"
+      },
+      "id": "e3b015bd-325e-4079-a37c-415c38832eb3",
+      "name": "Lead JSON Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        592,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "date",
+              "name": "date",
+              "value": "={{ $now.toFormat(\"yyyy-MM-dd HH:mm\") }}",
+              "type": "string"
+            },
+            {
+              "id": "leadName",
+              "name": "leadName",
+              "value": "={{ $(\"Sample Lead Data\").item.json.leadName }}",
+              "type": "string"
+            },
+            {
+              "id": "company",
+              "name": "company",
+              "value": "={{ $(\"Sample Lead Data\").item.json.company }}",
+              "type": "string"
+            },
+            {
+              "id": "email",
+              "name": "email",
+              "value": "={{ $(\"Sample Lead Data\").item.json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "phone",
+              "name": "phone",
+              "value": "={{ $(\"Sample Lead Data\").item.json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "jobTitle",
+              "name": "jobTitle",
+              "value": "={{ $(\"Sample Lead Data\").item.json.jobTitle }}",
+              "type": "string"
+            },
+            {
+              "id": "leadQuality",
+              "name": "leadQuality",
+              "value": "={{ $json.output.leadQuality }}",
+              "type": "string"
+            },
+            {
+              "id": "dealValue",
+              "name": "dealValue",
+              "value": "={{ $json.output.estimatedDealValue }}",
+              "type": "string"
+            },
+            {
+              "id": "purchaseIntent",
+              "name": "purchaseIntent",
+              "value": "={{ $json.output.purchaseIntent }}",
+              "type": "string"
+            },
+            {
+              "id": "salesPriority",
+              "name": "salesPriority",
+              "value": "={{ $json.output.salesPriority }}",
+              "type": "string"
+            },
+            {
+              "id": "confidenceScore",
+              "name": "confidenceScore",
+              "value": "={{ $json.output.confidenceScore }}",
+              "type": "number"
+            },
+            {
+              "id": "nextAction",
+              "name": "nextAction",
+              "value": "={{ $json.output.recommendedNextAction }}",
+              "type": "string"
+            },
+            {
+              "id": "summary",
+              "name": "summary",
+              "value": "={{ $json.output.leadSummary }}",
+              "type": "string"
+            },
+            {
+              "id": "followUpEmail",
+              "name": "followUpEmail",
+              "value": "={{ $json.output.suggestedFollowUpEmail }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "be3b853c-0b08-4c2e-9058-8e0df5e871e2",
+      "name": "Prepare CRM Record",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        800,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1xZmtNKqJRBtWObq8H9ubsMz9zHPhYC6N7csB2n50_mE",
+          "mode": "list",
+          "cachedResultName": "CRMupdate",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1xZmtNKqJRBtWObq8H9ubsMz9zHPhYC6N7csB2n50_mE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Sheet1"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "date": "={{ $json.date }}",
+            "leadName": "={{ $json.leadName }}",
+            "company": "={{ $json.company }}",
+            "email": "={{ $json.email }}",
+            "phone": "={{ $json.phone }}",
+            "jobTitle": "={{ $json.jobTitle }}",
+            "leadQuality": "={{ $json.leadQuality }}",
+            "dealValue": "={{ $json.dealValue }}",
+            "purchaseIntent": "={{ $json.purchaseIntent }}",
+            "salesPriority": "={{ $json.salesPriority }}",
+            "confidenceScore": "={{ $json.confidenceScore }}",
+            "nextAction": "={{ $json.nextAction }}",
+            "summary": "={{ $json.summary }}",
+            "followUpEmail": "={{ $json.followUpEmail }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "leadName",
+              "displayName": "leadName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "company",
+              "displayName": "company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "jobTitle",
+              "displayName": "jobTitle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "leadQuality",
+              "displayName": "leadQuality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "dealValue",
+              "displayName": "dealValue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "purchaseIntent",
+              "displayName": "purchaseIntent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "salesPriority",
+              "displayName": "salesPriority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "confidenceScore",
+              "displayName": "confidenceScore",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "nextAction",
+              "displayName": "nextAction",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "summary",
+              "displayName": "summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "followUpEmail",
+              "displayName": "followUpEmail",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "f8d496bb-f211-49df-a784-fdd417c71009",
+      "name": "Update CRM (Google Sheet)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1024,
+        112
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "EV85hIo6GEzcLqCr",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "hotCheck",
+              "leftValue": "={{ $(\"Prepare CRM Record\").item.json.leadQuality }}",
+              "rightValue": "Hot",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "1702379a-540f-487d-9d49-e9792cd46ec9",
+      "name": "Is Hot Lead?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1248,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "support@example.com",
+        "subject": "🔥 New Hot Lead",
+        "emailType": "text",
+        "message": "=A new high-value lead has been identified.\n\nLead: {{ $(\"Prepare CRM Record\").item.json.leadName }}\nCompany: {{ $(\"Prepare CRM Record\").item.json.company }}\n\nLead Quality: {{ $(\"Prepare CRM Record\").item.json.leadQuality }}\nEstimated Deal Value: {{ $(\"Prepare CRM Record\").item.json.dealValue }}\nSales Priority: {{ $(\"Prepare CRM Record\").item.json.salesPriority }}\n\nRecommended Next Action:\n{{ $(\"Prepare CRM Record\").item.json.nextAction }}\n\nSummary:\n{{ $(\"Prepare CRM Record\").item.json.summary }}\n\nSuggested Follow-up:\n{{ $(\"Prepare CRM Record\").item.json.followUpEmail }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "e7aef25d-680f-4d46-bacc-18ad02bb40b6",
+      "name": "Notify Sales (Hot Lead)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1472,
+        16
+      ],
+      "webhookId": "f69033d1-14dd-46ac-9ce2-52a7b07a9472",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "bQnNgNT2RpWtHZYz",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "jsonParsed",
+              "name": "jsonParsed",
+              "value": "={{ $(\"Prepare CRM Record\").item.json.leadQuality ? true : false }}",
+              "type": "boolean"
+            },
+            {
+              "id": "crmUpdated",
+              "name": "crmUpdated",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "sheetUpdated",
+              "name": "sheetUpdated",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "gmailSent",
+              "name": "gmailSent",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "leadProcessed",
+              "name": "leadProcessed",
+              "value": "={{ $(\"Prepare CRM Record\").item.json.leadName }}",
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "name": "status",
+              "value": "Workflow completed successfully",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6ee38672-316c-4330-b10f-506df38045de",
+      "name": "Workflow Complete",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1696,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "support@example.com",
+        "subject": "=New Lead: {{ $(\"Prepare CRM Record\").item.json.leadName }} ({{ $(\"Prepare CRM Record\").item.json.leadQuality }})",
+        "emailType": "text",
+        "message": "=A new lead has been processed and added to the CRM.\n\nLead: {{ $(\"Prepare CRM Record\").item.json.leadName }}\nCompany: {{ $(\"Prepare CRM Record\").item.json.company }}\n\nLead Quality: {{ $(\"Prepare CRM Record\").item.json.leadQuality }}\nEstimated Deal Value: {{ $(\"Prepare CRM Record\").item.json.dealValue }}\nSales Priority: {{ $(\"Prepare CRM Record\").item.json.salesPriority }}\nPurchase Intent: {{ $(\"Prepare CRM Record\").item.json.purchaseIntent }}\n\nRecommended Next Action:\n{{ $(\"Prepare CRM Record\").item.json.nextAction }}\n\nSummary:\n{{ $(\"Prepare CRM Record\").item.json.summary }}\n\nSuggested Follow-up:\n{{ $(\"Prepare CRM Record\").item.json.followUpEmail }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "994ea673-9949-450c-8cdd-90266b0c64f8",
+      "name": "Notify Sales (Standard)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1472,
+        208
+      ],
+      "webhookId": "1b3a5d7f-dd71-4461-b39a-fcae742bcd3e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "bQnNgNT2RpWtHZYz",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Start (Manual Test)": {
+      "main": [
+        [
+          {
+            "node": "Sample Lead Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sample Lead Data": {
+      "main": [
+        [
+          {
+            "node": "Analyze Lead (Gemini)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Lead (Gemini)": {
+      "main": [
+        [
+          {
+            "node": "Prepare CRM Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Analyze Lead (Gemini)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead JSON Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Analyze Lead (Gemini)",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare CRM Record": {
+      "main": [
+        [
+          {
+            "node": "Update CRM (Google Sheet)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update CRM (Google Sheet)": {
+      "main": [
+        [
+          {
+            "node": "Is Hot Lead?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Hot Lead?": {
+      "main": [
+        [
+          {
+            "node": "Notify Sales (Hot Lead)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Sales (Standard)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Sales (Hot Lead)": {
+      "main": [
+        [
+          {
+            "node": "Workflow Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Sales (Standard)": {
+      "main": [
+        [
+          {
+            "node": "Workflow Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "6e88593c-dfcc-4aea-8e10-61823aebba0f",
+  "meta": {
+    "instanceId": "e25cbc21fd004de71799eb9a43a8ed3e83e15b137f2cb286c0f05ea77fc84074"
+  },
+  "nodeGroups": [],
+  "id": "JxYBoeoobdBmckuX",
+  "tags": []
+}
