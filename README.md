@@ -34,7 +34,8 @@ The workflow helps businesses maintain an organized CRM while reducing manual da
 
 ## Workflow
 
-<img width="1856" height="880" alt="Screenshot From 2026-07-27 17-34-34" src="https://github.com/user-attachments/assets/5475d848-414b-4069-8940-2f3b61b82c70" />
+<img width="1850" height="879" alt="Screenshot From 2026-07-27 17-34-34" src="https://github.com/user-attachments/assets/fbf4ec08-6191-41f9-b094-f18dba184f69" />
+
 
 
 ---
